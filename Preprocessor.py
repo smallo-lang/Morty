@@ -16,22 +16,22 @@ class Preprocessor:
 
         self.OPCODES = {
             'put':  (self._put_, (State.VALUE, State.IDENTIFIER)),
-            'add':  (self._nop_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
-            'sub':  (self._nop_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
-            'mul':  (self._nop_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
-            'div':  (self._nop_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
-            'mod':  (self._nop_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
-            'gth':  (self._nop_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
-            'lth':  (self._nop_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
-            'geq':  (self._nop_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
-            'leq':  (self._nop_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
-            'eq':   (self._nop_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
-            'neq':  (self._nop_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
+            'add':  (self._add_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
+            'sub':  (self._sub_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
+            'mul':  (self._mul_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
+            'div':  (self._div_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
+            'mod':  (self._mod_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
+            'gth':  (self._gth_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
+            'lth':  (self._lth_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
+            'geq':  (self._geq_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
+            'leq':  (self._leq_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
+            'eq':   (self._eq_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
+            'neq':  (self._neq_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
             'ini':  (self._ini_, (State.IDENTIFIER,)),
-            'ins':  (self._ini_, (State.IDENTIFIER,)),
+            'ins':  (self._ins_, (State.IDENTIFIER,)),
             'out':  (self._out_, (State.VALUE,)),
-            'outl': (self._nop_, (State.VALUE,)),
-            'nl':   (self._nop_, tuple()),
+            'outl': (self._outl_, (State.VALUE,)),
+            'nl':   (self._nl_, tuple()),
             'con':  (self._nop_, (State.VALUE, State.VALUE, State.IDENTIFIER)),
             'sti':  (self._nop_, (State.NOT_INTEGER, State.IDENTIFIER)),
             'not':  (self._nop_, (State.VALUE, State.IDENTIFIER)),
@@ -76,7 +76,7 @@ class Preprocessor:
 
     def _record_literal_if_not_known(self, literal, is_id=False):
         if literal not in self.literals:
-            self.memory.append(0 if is_id else literal)
+            self.memory.append(None if is_id else literal)
             self.literals[literal] = self.memory_counter
             self.memory_counter += 1
 
@@ -118,7 +118,7 @@ class Preprocessor:
                 return
 
         self._record(instruction.operand)
-        opcode_method(instruction)
+        opcode_method(self._unpack(instruction.operand))
 
     def _record(self, operand):
         for state, value in operand:
@@ -143,35 +143,94 @@ class Preprocessor:
     def _parse_label_name(line):
         return line[:-1]
 
-    """ Opcode-Specific Methods. """
+    @staticmethod
+    def _unpack(operand):
+        return tuple([value for _, value in operand])
+
+    """ Abstracting common opcode practices. """
+    def _binary_operation(self, operand, operation):
+        x, y, z = operand
+        self._instr(
+            Op.PUSH, self._get_literal_as_i32(x),
+            Op.PUSH, self._get_literal_as_i32(y),
+            operation,
+            Op.POP, self._get_literal_as_i32(z))
+
+    """ Opcode-specific methods. """
     def _nop_(self, _):
         pass
 
-    def _put_(self, instruction):
-        value, name = instruction.operand
-        value, name = value[1], name[1]
+    def _put_(self, operand):
+        value, name = operand
         self._instr(
             Op.PUSH, self._get_literal_as_i32(value),
             Op.POP, self._get_literal_as_i32(name))
 
-    def _ini_(self, instruction):
-        name = instruction.operand[0][1]
+    def _add_(self, operand):
+        self._binary_operation(operand, Op.ADD)
+
+    def _sub_(self, operand):
+        self._binary_operation(operand, Op.SUB)
+
+    def _mul_(self, operand):
+        self._binary_operation(operand, Op.MUL)
+
+    def _div_(self, operand):
+        self._binary_operation(operand, Op.DIV)
+
+    def _mod_(self, operand):
+        self._binary_operation(operand, Op.MOD)
+
+    def _gth_(self, operand):
+        self._binary_operation(operand, Op.GTH)
+
+    def _lth_(self, operand):
+        self._binary_operation(operand, Op.LTH)
+
+    def _geq_(self, operand):
+        self._binary_operation(operand, Op.GEQ)
+
+    def _leq_(self, operand):
+        self._binary_operation(operand, Op.LEQ)
+
+    def _eq_(self, operand):
+        self._binary_operation(operand, Op.EQ)
+
+    def _neq_(self, operand):
+        self._binary_operation(operand, Op.NEQ)
+
+    def _ini_(self, operand):
+        name = operand[0]
         self._instr(
             Op.INI,
             Op.POP, self._get_literal_as_i32(name))
 
-    def _out_(self, instruction):
-        name = instruction.operand[0][1]
+    def _ins_(self, operand):
+        name = operand[0]
         self._instr(
-            Op.PUSH,
-            self._get_literal_as_i32(name),
+            Op.INS,
+            Op.POP, self._get_literal_as_i32(name))
+
+    def _out_(self, operand):
+        name = operand[0]
+        self._instr(
+            Op.PUSH, self._get_literal_as_i32(name),
             Op.OUT)
 
-    def _jump_(self, instruction):
-        label = instruction.operand[0][1]
+    def _outl_(self, operand):
+        name = operand[0]
         self._instr(
-            Op.PUSH,
-            self._get_literal_as_i32(label),
+            Op.PUSH, self._get_literal_as_i32(name),
+            Op.OUT,
+            Op.NL)
+
+    def _nl_(self, _):
+        self._instr(Op.NL)
+
+    def _jump_(self, operand):
+        label = operand[0]
+        self._instr(
+            Op.PUSH, self._get_literal_as_i32(label),
             Op.JUMP)
 
     def _end_(self, _):
