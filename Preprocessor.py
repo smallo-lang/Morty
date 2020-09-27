@@ -14,38 +14,38 @@ class Preprocessor:
         self.labels = set()
         self.err = ''
 
-        self.INFO = {
-            'put': (self._put_, 2),
-            'add': 3,
-            'sub': 3,
-            'mul': 3,
-            'div': 3,
-            'mod': 3,
-            'gth': 3,
-            'lth': 3,
-            'geq': 3,
-            'leq': 3,
-            'eq': 3,
-            'neq': 3,
-            'ini': (self._ini_, 1),
-            'ins': 1,
-            'out': (self._out_, 1),
-            'outl': 1,
-            'nl': 0,
-            'con': 3,
-            'sti': 2,
-            'not': 2,
-            'and': 3,
-            'or': 3,
-            'jump': (self._jump_, 1),
-            'jmpt': 2,
-            'jmpf': 2,
-            'br': 1,
-            'brt': 2,
-            'brf': 2,
-            'back': 0,
-            'err': 2,
-            'end': (self._end_, 0),
+        self.OPCODES = {
+            'put':  (self._put_, (State.VALUE, State.IDENTIFIER)),
+            'add':  (self._nop_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
+            'sub':  (self._nop_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
+            'mul':  (self._nop_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
+            'div':  (self._nop_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
+            'mod':  (self._nop_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
+            'gth':  (self._nop_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
+            'lth':  (self._nop_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
+            'geq':  (self._nop_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
+            'leq':  (self._nop_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
+            'eq':   (self._nop_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
+            'neq':  (self._nop_, (State.NOT_STRING, State.NOT_STRING, State.IDENTIFIER)),
+            'ini':  (self._ini_, (State.IDENTIFIER,)),
+            'ins':  (self._ini_, (State.IDENTIFIER,)),
+            'out':  (self._out_, (State.VALUE,)),
+            'outl': (self._nop_, (State.VALUE,)),
+            'nl':   (self._nop_, tuple()),
+            'con':  (self._nop_, (State.VALUE, State.VALUE, State.IDENTIFIER)),
+            'sti':  (self._nop_, (State.NOT_INTEGER, State.IDENTIFIER)),
+            'not':  (self._nop_, (State.VALUE, State.IDENTIFIER)),
+            'and':  (self._nop_, (State.VALUE, State.VALUE, State.IDENTIFIER)),
+            'or':   (self._nop_, (State.VALUE, State.VALUE, State.IDENTIFIER)),
+            'jump': (self._jump_, (State.IDENTIFIER,)),
+            'jmpt': (self._nop_, (State.IDENTIFIER, State.IDENTIFIER)),
+            'jmpf': (self._nop_, (State.IDENTIFIER, State.IDENTIFIER)),
+            'br':   (self._jump_, (State.IDENTIFIER,)),
+            'brt':  (self._nop_, (State.IDENTIFIER, State.IDENTIFIER)),
+            'brf':  (self._nop_, (State.IDENTIFIER, State.IDENTIFIER)),
+            'back': (self._nop_, tuple()),
+            'err':  (self._nop_, (State.NOT_INTEGER, State.NOT_STRING)),
+            'end':  (self._end_, tuple()),
         }
 
     def process(self, code):
@@ -96,16 +96,28 @@ class Preprocessor:
             self._error(f'failed to parse instruction: {line}')
             return
 
-        info = self.INFO.get(instruction.opcode)
+        info = self.OPCODES.get(instruction.opcode)
         if info is None:
             self._error(f'unknown opcode: {instruction.opcode}')
             return
 
-        opcode_method, expected_operand_length = info
-        if len(instruction.operand) != expected_operand_length:
+        opcode_method, operand_types = info
+        if len(instruction.operand) != len(operand_types):
             self._error(f'invalid operand length: {line}')
             return
 
+        for operand_item, expected_operand_type in \
+                zip(instruction.operand, operand_types):
+            operand_type, operand_value = operand_item
+            if State.mismatch(operand_type, expected_operand_type):
+                self._error(
+                    f'invalid operand type {operand_value} ' +
+                    f'in instruction {line}\n' +
+                    f'expected {State.name(expected_operand_type)}\n' +
+                    f'got {State.name(operand_type)}')
+                return
+
+        self._record(instruction.operand)
         opcode_method(instruction)
 
     def _record(self, operand):
@@ -132,12 +144,11 @@ class Preprocessor:
         return line[:-1]
 
     """ Opcode-Specific Methods. """
+    def _nop_(self, _):
+        pass
+
     def _put_(self, instruction):
         value, name = instruction.operand
-        if name[0] != State.IDENTIFIER:
-            self._error(f'[put] expected a name instead of {name[0]}')
-
-        self._record(instruction.operand)
         value, name = value[1], name[1]
         self._instr(
             Op.PUSH, self._get_literal_as_i32(value),
@@ -145,22 +156,12 @@ class Preprocessor:
 
     def _ini_(self, instruction):
         name = instruction.operand[0][1]
-        if instruction.operand[0][0] != State.IDENTIFIER:
-            self._error(f'[ini] expected a name instead of {name}')
-            return
-
-        self._record(instruction.operand)
         self._instr(
             Op.INI,
             Op.POP, self._get_literal_as_i32(name))
 
     def _out_(self, instruction):
         name = instruction.operand[0][1]
-        if instruction.operand[0][0] != State.IDENTIFIER:
-            self._error(f'[out] expected a name instead of {name}')
-            return
-
-        self._record(instruction.operand)
         self._instr(
             Op.PUSH,
             self._get_literal_as_i32(name),
@@ -168,11 +169,6 @@ class Preprocessor:
 
     def _jump_(self, instruction):
         label = instruction.operand[0][1]
-        if instruction.operand[0][0] != State.IDENTIFIER:
-            self._error(f'[jump] expected a label instead of {label}')
-            return
-
-        self._record(instruction.operand)
         self._instr(
             Op.PUSH,
             self._get_literal_as_i32(label),

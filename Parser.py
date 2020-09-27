@@ -11,6 +11,31 @@ class State:
     INTEGER = 6
     STRING = 7
 
+    """ Additional semantic states for the Preprocessor. """
+    VALUE = 8   # IDENTIFIER / INTEGER / STRING
+    NOT_INTEGER = 9
+    NOT_STRING = 10
+
+    """ States translated back as strings. """
+    NAME = ['finish', 'error', 'start', 'opcode', 'dump',
+            'identifier', 'integer', 'string', 'value',
+            'not integer', 'not string']
+
+    @staticmethod
+    def name(state):
+        return State.NAME[state]
+
+    @staticmethod
+    def mismatch(got, expected):
+        if expected == State.VALUE:
+            return False
+        elif expected == State.NOT_INTEGER:
+            return got == State.INTEGER
+        elif expected == State.NOT_STRING:
+            return got == State.STRING
+        else:
+            return got != expected
+
 
 class Parser:
     def __init__(self):

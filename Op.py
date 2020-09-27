@@ -1,4 +1,5 @@
 class Op:
+    """ Op contains Rick's opcodes and their byte representations. """
     END  = b'\x00'
     PUSH = b'\x01'
     POP  = b'\x02'

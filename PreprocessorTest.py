@@ -41,6 +41,21 @@ class PreprocessorTest(TestCase):
         self.pre.process(['1invalid:'])
         self._assert_err_flag_set()
 
+    def test_sets_err_flag_on_unknown_opcode(self):
+        self.pre.process(['outln "hello world"'])
+        self._assert_err_flag_set()
+
+    def test_sets_err_flag_on_invalid_operand_length(self):
+        self.pre.process(['put 1'])
+        self._assert_err_flag_set()
+        self.pre = Preprocessor()
+        self.pre.process(['end 1'])
+        self._assert_err_flag_set()
+
+    def test_sets_err_flag_on_invalid_operand_type(self):
+        self.pre.process(['put 1 1'])
+        self._assert_err_flag_set()
+
     """ Opcode-Related tests. """
     def test_put_(self):
         self._assert_results_match(
@@ -56,6 +71,7 @@ class PreprocessorTest(TestCase):
     """ Utility methods. """
     def _assert_results_match(self, inp, mem, ins):
         self.pre.process(inp)
+        self._assert_err_flag_not_set()
         self.assertEqual(mem, self.pre.memory)
         self.assertEqual(ins, self.pre.instructions)
 

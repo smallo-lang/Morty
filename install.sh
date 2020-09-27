@@ -1,2 +1,2 @@
 # requires sudo privileges
-mv ./beth /usr/local/bin/
+mv ./morty /usr/local/bin/
