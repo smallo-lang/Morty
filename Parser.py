@@ -58,6 +58,13 @@ class Parser:
             State.STRING: self._string_,
         }
 
+        self.ESCAPE_SEQUENCES = {
+            r'\n': '\n',
+            r'\t': '\t',
+            r'\r': '\r',
+            r'\"': '"',
+        }
+
     def parse(self, instruction):
         self.instruction = instruction + self.ender
         while self._state not in (State.ERROR, State.FINISH):
@@ -89,6 +96,9 @@ class Parser:
 
         if self._state == State.INTEGER:
             value = int(value)
+        elif self._state == State.STRING:
+            for esc, seq in self.ESCAPE_SEQUENCES.items():
+                value = value.replace(esc, seq)
 
         self.operand += ((self._state, value),)
         self._shift()
@@ -160,7 +170,7 @@ class Parser:
             self._state = State.ERROR
 
     def _string_(self):
-        if self._curs == '"':
+        if self._curs == '"' and self._buf[-1] != '\\':
             self._add_operand()
             self._state = State.DUMP
         else:

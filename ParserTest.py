@@ -31,6 +31,18 @@ class ParserTest(TestCase):
             'put', ((State.STRING, 'I love SmallO'),)
         )
 
+    def test_can_parse_instruction_with_newline_in_str(self):
+        self._parse_and_check_result(
+            r'put "I love SmallO\n"',
+            'put', ((State.STRING, 'I love SmallO\n'),)
+        )
+
+    def test_can_parse_instruction_with_quote_in_str(self):
+        self._parse_and_check_result(
+            r'put "He said: \"I love SmallO\""',
+            'put', ((State.STRING, 'He said: "I love SmallO"'),)
+        )
+
     def test_can_parse_complex_instruction(self):
         self._parse_and_check_result(
             'add "one" 2 var',
