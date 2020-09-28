@@ -6,6 +6,8 @@ Morty is a snappy and lightweight assembler for the SmallO assembly.
 
 ## Installation
 
+### Basics
+
 I am assuming that you came here to use *Morty*, right? It's simple:
 
 ```bash
@@ -22,6 +24,13 @@ morty examples/exe/year_of_birth.so --target yob.rk
 # Get help.
 morty --help
 ```
+
+
+### Python Package Installer
+
+The above installation might fail if you don't have the `pip` command installed
+on your machine. To install `pip` (Package Installer for Python), follow
+instructions [here](https://pip.pypa.io/en/stable/installing/).
 
 
 
