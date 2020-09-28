@@ -1,7 +1,7 @@
 from pathlib import Path
 import re
 
-from Stack import Stack
+from .Stack import Stack
 
 
 class Loader:

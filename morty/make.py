@@ -1,6 +1,6 @@
 import json
 
-from Op import Op
+from .Op import Op
 
 
 SEP = b'\0'

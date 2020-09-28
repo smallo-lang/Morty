@@ -1,9 +1,9 @@
 from unittest import TestCase
 
-from Preprocessor import Preprocessor
-from Op import Op
-import make
-from make import i32
+from .Preprocessor import Preprocessor
+from .Op import Op
+from . import make
+from .make import i32
 
 
 class PreprocessorTest(TestCase):

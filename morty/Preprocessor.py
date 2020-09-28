@@ -1,8 +1,8 @@
 import re
 
-from Parser import Parser, State
-from Op import Op
-from make import i32
+from .Parser import Parser, State
+from .Op import Op
+from .make import i32
 
 
 class Preprocessor:
