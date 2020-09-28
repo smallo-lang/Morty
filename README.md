@@ -4,6 +4,35 @@ Morty is a snappy and lightweight assembler for the SmallO assembly.
 
 
 
+## Installation
+
+I am assuming that you came here to use *Morty*, right? It's simple:
+
+```bash
+# Install as a finalised package.
+pip install .
+
+# Alternatively, install as a dev package.
+# This way, it will react to any changes immediately.
+pip install --editable .
+
+# Use it straight away!
+morty examples/exe/year_of_birth.so --target yob.rk
+
+# Get help.
+morty --help
+```
+
+
+
+## Family
+
+*Morty* has a family. There are different members, each with their own life.
+Talk to [Jerry](https://github.com/smallo-lang/Jerry) as he can give you a
+better overview of the household and how its members fit together.
+
+
+
 ## Architecture
 
 ### <a name="loader"></a> Loader
