@@ -1,9 +1,9 @@
 from unittest import TestCase
 
-from .Preprocessor import Preprocessor
-from .Op import Op
-from . import make
-from .make import i32
+from morty.Preprocessor import Preprocessor
+from morty.Op import Op
+from morty import make
+from morty.make import i32
 
 
 class PreprocessorTest(TestCase):
@@ -233,6 +233,59 @@ class PreprocessorTest(TestCase):
             ins=make.ins(Op.NL)
         )
 
+    def test_con_(self):
+        self._assert_results_match(
+            inp=['con "hello" world message'],
+            mem=['hello', None, None],
+            ins=make.ins(
+                Op.PUSH, i32(0),
+                Op.PUSH, i32(1),
+                Op.CON,
+                Op.POP, i32(2))
+        )
+
+    def test_sti_(self):
+        self._assert_results_match(
+            inp=['sti "42" magic'],
+            mem=['42', None],
+            ins=make.ins(
+                Op.PUSH, i32(0),
+                Op.STI,
+                Op.POP, i32(1))
+        )
+
+    def test_not_(self):
+        self._assert_results_match(
+            inp=['not 42 false'],
+            mem=[42, None],
+            ins=make.ins(
+                Op.PUSH, i32(0),
+                Op.NOT,
+                Op.POP, i32(1))
+        )
+
+    def test_and_(self):
+        self._assert_results_match(
+            inp=['and 0 1 false'],
+            mem=[0, 1, None],
+            ins=make.ins(
+                Op.PUSH, i32(0),
+                Op.PUSH, i32(1),
+                Op.AND,
+                Op.POP, i32(2))
+        )
+
+    def test_or_(self):
+        self._assert_results_match(
+            inp=['or 0 1 true'],
+            mem=[0, 1, None],
+            ins=make.ins(
+                Op.PUSH, i32(0),
+                Op.PUSH, i32(1),
+                Op.OR,
+                Op.POP, i32(2))
+        )
+
     def test_jump_(self):
         self._assert_results_match(
             inp=['jump main'],
@@ -240,6 +293,73 @@ class PreprocessorTest(TestCase):
             ins=make.ins(
                 Op.PUSH, i32(0),
                 Op.JUMP)
+        )
+
+    def test_jmpt_(self):
+        self._assert_results_match(
+            inp=['jmpt true main'],
+            mem=[None, None],
+            ins=make.ins(
+                Op.PUSH, i32(1),
+                Op.PUSH, i32(0),
+                Op.JMPT)
+        )
+
+    def test_jmpf_(self):
+        self._assert_results_match(
+            inp=['jmpf false main'],
+            mem=[None, None],
+            ins=make.ins(
+                Op.PUSH, i32(1),
+                Op.PUSH, i32(0),
+                Op.JMPF)
+        )
+
+    def test_br_(self):
+        self._assert_results_match(
+            inp=['br func'],
+            mem=[None],
+            ins=make.ins(
+                Op.PUSH, i32(0),
+                Op.BR)
+        )
+
+    def test_brt_(self):
+        self._assert_results_match(
+            inp=['brt true func'],
+            mem=[None, None],
+            ins=make.ins(
+                Op.PUSH, i32(1),
+                Op.PUSH, i32(0),
+                Op.BRT)
+        )
+
+    def test_brf_(self):
+        self._assert_results_match(
+            inp=['brf false func'],
+            mem=[None, None],
+            ins=make.ins(
+                Op.PUSH, i32(1),
+                Op.PUSH, i32(0),
+                Op.BRF)
+        )
+
+    def test_back_(self):
+        self._assert_results_match(
+            inp=['back'],
+            mem=[],
+            ins=make.ins(Op.BACK)
+        )
+
+    def test_err(self):
+        self._assert_results_match(
+            inp=['err "piss off" 404'],
+            mem=['piss off', 404],
+            ins=make.ins(
+                Op.PUSH, i32(0),
+                Op.OUT,
+                Op.PUSH, i32(1),
+                Op.ERR)
         )
 
     def test_end_(self):
@@ -262,23 +382,38 @@ class PreprocessorTest(TestCase):
     def _assert_err_flag_not_set(self):
         self.assertFalse(self.pre.err)
 
-    """
     def test_works_for_good_code(self):
-        self.pre.process([
-            'inn age',
-            'lth age 18 b',
-            'jmpf b exit',
-            'out "You are a minor"',
-            'exit:',
-            'end',
-        ])
-        self.assertEqual([
-            'inn age',
-            'lth age 18 b',
-            'jmpf b exit',
-            'out "You are a minor"',
-            'end',
-        ], self.pre.instructions)
-        self.assertEqual({'exit': 4}, self.pre.labels)
-        self._assert_err_flag_not_set()
-    """
+        self._assert_results_match(
+            inp=[
+                'jump main',
+                'func:',
+                'out "Input your age: "',
+                'ini age',
+                'out "You are "',
+                'out age',
+                'out " years old -- that\'s cool!"',
+                'back',
+                'main:',
+                'br func',
+            ],
+            # 0. main 1. func  2            3. age
+            mem=[37, 6, 'Input your age: ', None,
+                 'You are ', ' years old -- that\'s cool!'],
+            #    4           5
+            ins=make.ins(
+                Op.PUSH, i32(0),
+                Op.JUMP,
+                Op.PUSH, i32(2),
+                Op.OUT,
+                Op.INI,
+                Op.POP, i32(3),
+                Op.PUSH, i32(4),
+                Op.OUT,
+                Op.PUSH, i32(3),
+                Op.OUT,
+                Op.PUSH, i32(5),
+                Op.OUT,
+                Op.BACK,
+                Op.PUSH, i32(1),
+                Op.BR)
+        )

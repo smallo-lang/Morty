@@ -1,0 +1,27 @@
+AT = '@'
+ANY = '.'
+EOL = '\n' | '\r\n'
+COLON = ':'
+INTEGER = '(-?[1-9]\d*|0)'
+STRING = '"[^"\\]*(?:\\.[^"\\]*)*"'
+IDENTIFIER = '[_a-zA-Z]\w*'
+OPCODE = ('put' | 'add' | 'sub' | 'mul' | 'div' | 'mod' | 'gth' | 'lth' | 'geq'
+    | 'leq' | 'eq' | 'neq' | 'ini' | 'ins' | 'out' | 'outl' | 'nl' | 'con'
+    | 'sti' | 'not' | 'and' | 'or' | 'jump' | 'jmpt' | 'jmpf' | 'br' | 'brt'
+    | 'brf' | 'back' | 'err' | 'end')
+
+smallo = statement*
+
+statement = (comment? | command comment?) EOL
+
+comment = AT ANY*
+
+command = (label | instruction)
+
+label = IDENTIFIER + COLON
+
+instruction = OPCODE operand
+
+operand = atom*
+
+operand = (INTEGER | STRING | IDENTIFIER)

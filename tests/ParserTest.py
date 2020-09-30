@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from .Parser import Parser, State
+from morty.Parser import Parser, State
 
 
 class ParserTest(TestCase):

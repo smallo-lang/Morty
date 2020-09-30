@@ -32,19 +32,19 @@ class Preprocessor:
             'out':  (self._out_, (State.VALUE,)),
             'outl': (self._outl_, (State.VALUE,)),
             'nl':   (self._nl_, tuple()),
-            'con':  (self._nop_, (State.VALUE, State.VALUE, State.IDENTIFIER)),
-            'sti':  (self._nop_, (State.NOT_INTEGER, State.IDENTIFIER)),
-            'not':  (self._nop_, (State.VALUE, State.IDENTIFIER)),
-            'and':  (self._nop_, (State.VALUE, State.VALUE, State.IDENTIFIER)),
-            'or':   (self._nop_, (State.VALUE, State.VALUE, State.IDENTIFIER)),
+            'con':  (self._con_, (State.VALUE, State.VALUE, State.IDENTIFIER)),
+            'sti':  (self._sti_, (State.NOT_INTEGER, State.IDENTIFIER)),
+            'not':  (self._not_, (State.VALUE, State.IDENTIFIER)),
+            'and':  (self._and_, (State.VALUE, State.VALUE, State.IDENTIFIER)),
+            'or':   (self._or_, (State.VALUE, State.VALUE, State.IDENTIFIER)),
             'jump': (self._jump_, (State.IDENTIFIER,)),
-            'jmpt': (self._nop_, (State.IDENTIFIER, State.IDENTIFIER)),
-            'jmpf': (self._nop_, (State.IDENTIFIER, State.IDENTIFIER)),
-            'br':   (self._jump_, (State.IDENTIFIER,)),
-            'brt':  (self._nop_, (State.IDENTIFIER, State.IDENTIFIER)),
-            'brf':  (self._nop_, (State.IDENTIFIER, State.IDENTIFIER)),
-            'back': (self._nop_, tuple()),
-            'err':  (self._nop_, (State.NOT_INTEGER, State.NOT_STRING)),
+            'jmpt': (self._jmpt_, (State.IDENTIFIER, State.IDENTIFIER)),
+            'jmpf': (self._jmpf_, (State.IDENTIFIER, State.IDENTIFIER)),
+            'br':   (self._br_, (State.IDENTIFIER,)),
+            'brt':  (self._brt_, (State.IDENTIFIER, State.IDENTIFIER)),
+            'brf':  (self._brf_, (State.IDENTIFIER, State.IDENTIFIER)),
+            'back': (self._back_, tuple()),
+            'err':  (self._err_, (State.NOT_INTEGER, State.NOT_STRING)),
             'end':  (self._end_, tuple()),
         }
 
@@ -148,6 +148,13 @@ class Preprocessor:
         return tuple([value for _, value in operand])
 
     """ Abstracting common opcode practices. """
+    def _unary_operation(self, operand, operation):
+        x, y = operand
+        self._instr(
+            Op.PUSH, self._get_literal_as_i32(x),
+            operation,
+            Op.POP, self._get_literal_as_i32(y))
+
     def _binary_operation(self, operand, operation):
         x, y, z = operand
         self._instr(
@@ -227,11 +234,71 @@ class Preprocessor:
     def _nl_(self, _):
         self._instr(Op.NL)
 
+    def _con_(self, operand):
+        self._binary_operation(operand, Op.CON)
+
+    def _sti_(self, operand):
+        self._unary_operation(operand, Op.STI)
+
+    def _not_(self, operand):
+        self._unary_operation(operand, Op.NOT)
+
+    def _and_(self, operand):
+        self._binary_operation(operand, Op.AND)
+
+    def _or_(self, operand):
+        self._binary_operation(operand, Op.OR)
+
     def _jump_(self, operand):
         label = operand[0]
         self._instr(
             Op.PUSH, self._get_literal_as_i32(label),
             Op.JUMP)
+
+    def _jmpt_(self, operand):
+        boolean, label = operand
+        self._instr(
+            Op.PUSH, self._get_literal_as_i32(label),
+            Op.PUSH, self._get_literal_as_i32(boolean),
+            Op.JMPT)
+
+    def _jmpf_(self, operand):
+        boolean, label = operand
+        self._instr(
+            Op.PUSH, self._get_literal_as_i32(label),
+            Op.PUSH, self._get_literal_as_i32(boolean),
+            Op.JMPF)
+
+    def _br_(self, operand):
+        label = operand[0]
+        self._instr(
+            Op.PUSH, self._get_literal_as_i32(label),
+            Op.BR)
+
+    def _brt_(self, operand):
+        boolean, label = operand
+        self._instr(
+            Op.PUSH, self._get_literal_as_i32(label),
+            Op.PUSH, self._get_literal_as_i32(boolean),
+            Op.BRT)
+
+    def _brf_(self, operand):
+        boolean, label = operand
+        self._instr(
+            Op.PUSH, self._get_literal_as_i32(label),
+            Op.PUSH, self._get_literal_as_i32(boolean),
+            Op.BRF)
+
+    def _back_(self, _):
+        self._instr(Op.BACK)
+
+    def _err_(self, operand):
+        message, error_code = operand
+        self._instr(
+            Op.PUSH, self._get_literal_as_i32(message),
+            Op.OUT,
+            Op.PUSH, self._get_literal_as_i32(error_code),
+            Op.ERR)
 
     def _end_(self, _):
         self._instr(Op.END)

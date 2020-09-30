@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from .Stack import Stack
+from morty.Stack import Stack
 
 
 class StackTest(TestCase):

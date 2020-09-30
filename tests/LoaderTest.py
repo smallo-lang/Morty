@@ -1,7 +1,7 @@
 from unittest import TestCase
 import os
 
-from .Loader import Loader
+from morty.Loader import Loader
 
 
 class LoaderTest(TestCase):
