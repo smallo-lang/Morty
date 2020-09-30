@@ -260,6 +260,7 @@ class PreprocessorTest(TestCase):
             mem=[42, None],
             ins=make.ins(
                 Op.PUSH, i32(0),
+                Op.BOOL,
                 Op.NOT,
                 Op.POP, i32(1))
         )
@@ -270,7 +271,9 @@ class PreprocessorTest(TestCase):
             mem=[0, 1, None],
             ins=make.ins(
                 Op.PUSH, i32(0),
+                Op.BOOL,
                 Op.PUSH, i32(1),
+                Op.BOOL,
                 Op.AND,
                 Op.POP, i32(2))
         )
@@ -281,7 +284,9 @@ class PreprocessorTest(TestCase):
             mem=[0, 1, None],
             ins=make.ins(
                 Op.PUSH, i32(0),
+                Op.BOOL,
                 Op.PUSH, i32(1),
+                Op.BOOL,
                 Op.OR,
                 Op.POP, i32(2))
         )

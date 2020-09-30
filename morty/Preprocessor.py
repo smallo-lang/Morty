@@ -148,18 +148,28 @@ class Preprocessor:
         return tuple([value for _, value in operand])
 
     """ Abstracting common opcode practices. """
-    def _unary_operation(self, operand, operation):
+    def _unary_operation(self, operand, *operations):
         x, y = operand
         self._instr(
             Op.PUSH, self._get_literal_as_i32(x),
-            operation,
+            *operations,
             Op.POP, self._get_literal_as_i32(y))
 
-    def _binary_operation(self, operand, operation):
+    def _binary_operation(self, operand, *operations):
         x, y, z = operand
         self._instr(
             Op.PUSH, self._get_literal_as_i32(x),
             Op.PUSH, self._get_literal_as_i32(y),
+            *operations,
+            Op.POP, self._get_literal_as_i32(z))
+
+    def _logical_operation(self, operand, operation):
+        x, y, z = operand
+        self._instr(
+            Op.PUSH, self._get_literal_as_i32(x),
+            Op.BOOL,
+            Op.PUSH, self._get_literal_as_i32(y),
+            Op.BOOL,
             operation,
             Op.POP, self._get_literal_as_i32(z))
 
@@ -241,13 +251,13 @@ class Preprocessor:
         self._unary_operation(operand, Op.STI)
 
     def _not_(self, operand):
-        self._unary_operation(operand, Op.NOT)
+        self._unary_operation(operand, Op.BOOL, Op.NOT)
 
     def _and_(self, operand):
-        self._binary_operation(operand, Op.AND)
+        self._logical_operation(operand, Op.AND)
 
     def _or_(self, operand):
-        self._binary_operation(operand, Op.OR)
+        self._logical_operation(operand, Op.OR)
 
     def _jump_(self, operand):
         label = operand[0]
