@@ -170,7 +170,7 @@ class Parser:
             self._state = State.ERROR
 
     def _string_(self):
-        if self._curs == '"' and self._buf[-1] != '\\':
+        if self._curs == '"' and (len(self._buf) == 0 or self._buf[-1] != '\\'):
             self._add_operand()
             self._state = State.DUMP
         else:

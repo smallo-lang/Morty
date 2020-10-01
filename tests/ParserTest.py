@@ -25,6 +25,12 @@ class ParserTest(TestCase):
             'put', ((State.INTEGER, -2020), (State.IDENTIFIER, 'year'))
         )
 
+    def test_can_parse_instruction_with_empty_str(self):
+        self._parse_and_check_result(
+            'put ""',
+            'put', ((State.STRING, ''),)
+        )
+
     def test_can_parse_instruction_with_one_str_operand(self):
         self._parse_and_check_result(
             'put "I love SmallO"',
